@@ -1,4 +1,4 @@
-package com.jadepool.sdk.model;
+package com.jadepool.sdk;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

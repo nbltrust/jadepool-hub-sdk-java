@@ -1,7 +1,6 @@
-package com.jadepool.sdk.model;
+package com.jadepool.sdk;
 
 import org.apache.commons.codec.binary.Base64;
-import com.jadepool.sdk.Utils;
 
 /**
  * 初始化

@@ -1,22 +1,13 @@
 package com.jadepool.sdk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jadepool.sdk.model.*;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
-import org.web3j.crypto.*;
-import java.math.BigInteger;
 import java.sql.Timestamp;
 
 public class HttpApi{
 
     private Configuration config;
-    private short version = 1;
-    private byte algorithmId = 33;
 
     public HttpApi(Configuration config) {
         this.config = config;
@@ -37,22 +28,11 @@ public class HttpApi{
         if (coinId == null || value == null || to == null) {
             throw new Exception("missing required parameter");
         }
-        byte[] preHash = authWithdrawalPreHash(sequence, coinId, value, to, memo);
-        byte[] sha256ByteArr = Utils.sha256(preHash);
-        String withdrawalAuth = sign(sha256ByteArr, this.config.getAuthKey());
-
-        byte[] WithdrawalAuthByteArr = Utils.hexStringToByteArray(withdrawalAuth);
-        short WithdrawalAuthLength = (short) WithdrawalAuthByteArr.length;
-        byte[] WithdrawalAuthLengthByteArr = Utils.shortToByteArr(WithdrawalAuthLength);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(preHash);
-        outputStream.write(WithdrawalAuthLengthByteArr);
-        outputStream.write(WithdrawalAuthByteArr);
-        String finalAuth = Utils.byteArrayToHex(outputStream.toByteArray());
+        String withdrawalAuth = AuthBuilder.buildWithdrawalAuth(this.config.getAuthKey(), sequence, coinId, value, to, memo);
 
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
         StringBuilder preSignJsonMessage = new StringBuilder();
-        preSignJsonMessage.append("auth" + finalAuth);
+        preSignJsonMessage.append("auth" + withdrawalAuth);
         if( extraData != null) {
             preSignJsonMessage.append("extraData" + extraData);
         }
@@ -66,7 +46,7 @@ public class HttpApi{
         preSignJsonMessage.append("value" + value);
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
-        String sig = sign(preSignJsonMessageSha256, this.config.getEccKey());
+        String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
         JSONObject data = new JSONObject();
         data.put("sequence", sequence);
         data.put("type", coinId);
@@ -74,7 +54,7 @@ public class HttpApi{
         data.put("to", to);
         if(memo != null) data.put("memo", memo);
         if(extraData != null) data.put("extraData", extraData);
-        data.put("auth", finalAuth);
+        data.put("auth", withdrawalAuth);
 
         String request = buildRequest(timestamp, data, sig);
         String response = Utils.post(this.config.getUrl() + "/api/v1/transactions", request);
@@ -103,7 +83,7 @@ public class HttpApi{
         preSignJsonMessage.append("type" + coinType);
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
-        String sig = sign(preSignJsonMessageSha256, this.config.getEccKey());
+        String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
         JSONObject data = new JSONObject();
         data.put("type", coinType);
 
@@ -135,7 +115,7 @@ public class HttpApi{
         preSignJsonMessage.append("type" + coinType);
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
-        String sig = sign(preSignJsonMessageSha256, this.config.getEccKey());
+        String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
         JSONObject data = new JSONObject();
         data.put("type", coinType);
 
@@ -167,7 +147,7 @@ public class HttpApi{
         preSignJsonMessage.append("type" + coinType);
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
-        String sig = sign(preSignJsonMessageSha256, this.config.getEccKey());
+        String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
         JSONObject data = new JSONObject();
         data.put("audittime", auditTime);
         data.put("type", coinType);
@@ -197,7 +177,7 @@ public class HttpApi{
         preSignJsonMessage.append("timestamp" + timestamp);
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
-        String sig = sign(preSignJsonMessageSha256, this.config.getEccKey());
+        String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
         String response = Utils.get(this.config.getUrl() + "/api/v1/transactions/" + orderId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig);
         JSONParser parser = new JSONParser();
         JSONObject jsonObject = (JSONObject)parser.parse(response);
@@ -223,7 +203,7 @@ public class HttpApi{
         preSignJsonMessage.append("timestamp" + timestamp);
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
-        String sig = sign(preSignJsonMessageSha256, this.config.getEccKey());
+        String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
 
         String response = Utils.get(this.config.getUrl() + "/api/v1/audits/" + auditId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig);
         JSONParser parser = new JSONParser();
@@ -250,7 +230,7 @@ public class HttpApi{
         preSignJsonMessage.append("timestamp" + timestamp);
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
-        String sig = sign(preSignJsonMessageSha256, this.config.getEccKey());
+        String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
 
         String response = Utils.get(this.config.getUrl() + "/api/v1/wallet/" + coinType + "/status?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig);
         JSONParser parser = new JSONParser();
@@ -276,138 +256,22 @@ public class HttpApi{
         if (coinId == null || coinType == null || chain == null || token == null) {
             throw new Exception("missing required parameter");
         }
-        byte[] preHash = authCoinPreHash(coinId, coinType, chain, token, decimal, contract);
-        byte[] sha256ByteArr = Utils.sha256(preHash);
-        String coinAuth = sign(sha256ByteArr, this.config.getAuthKey());
-
-        byte[] coinAuthByteArr = Utils.hexStringToByteArray(coinAuth);
-        short coinAuthLength = (short) coinAuthByteArr.length;
-        byte[] coinAuthLengthByteArr = Utils.shortToByteArr(coinAuthLength);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(preHash);
-        outputStream.write(coinAuthLengthByteArr);
-        outputStream.write(coinAuthByteArr);
-        String finalAuth = Utils.byteArrayToHex(outputStream.toByteArray());
+        String coinAuth = AuthBuilder.buildCoinAuth(this.config.getAuthKey(), coinId, coinType, chain, token, decimal, contract);
 
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
         StringBuilder preSignJsonMessage = new StringBuilder();
-        preSignJsonMessage.append("authToken" + finalAuth);
+        preSignJsonMessage.append("authToken" + coinAuth);
         preSignJsonMessage.append("timestamp" + timestamp);
 
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
-        String sig = sign(preSignJsonMessageSha256, this.config.getEccKey());
+        String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
 
         JSONObject data = new JSONObject();
-        data.put("authToken", finalAuth);
+        data.put("authToken", coinAuth);
 
         String request = buildRequest(timestamp, data, sig);
         Utils.patch(this.config.getUrl() + "/api/v1/wallet/" + coinId + "/token", request);
-    }
-
-    private byte[] authCoinPreHash(String coinId, String coinType, String chain, String token, int decimal, String contract) throws IOException {
-        byte[] versionByteArr = Utils.shortToByteArr(version);
-        byte[] algorithmIdByteArr = Utils.byteToByteArr(algorithmId);
-
-        byte[] coinIdByteArr = Utils.stringToByteArr(coinId);
-        short coinIdLength = (short) coinIdByteArr.length;
-        byte[] coinIdLengthByteArr = Utils.shortToByteArr(coinIdLength);
-
-        byte[] coinTypeByteArr = Utils.stringToByteArr(coinType);
-        short coinTypeLength = (short) coinTypeByteArr.length;
-        byte[] coinTypeLengthByteArr = Utils.shortToByteArr(coinTypeLength);
-
-        byte[] chainByteArr = Utils.stringToByteArr(chain);
-        short chainLength = (short) chainByteArr.length;
-        byte[] chainLengthByteArr = Utils.shortToByteArr(chainLength);
-
-        byte[] tokenByteArr = Utils.stringToByteArr(token);
-        short tokenLength = (short) tokenByteArr.length;
-        byte[] tokenLengthByteArr = Utils.shortToByteArr(tokenLength);
-
-        String convertedDecimal = String.valueOf(decimal);
-        byte[] decimalByteArr = Utils.stringToByteArr(convertedDecimal);
-        short decimalLength = (short) decimalByteArr.length;
-        byte[] decimalLengthByteArr = Utils.shortToByteArr(decimalLength);
-
-        byte[] contractByteArr = null;
-        short contractLength = 0;
-        if (contract != null) {
-            contractByteArr = Utils.stringToByteArr(contract);
-            contractLength = (short) contractByteArr.length;
-        }
-        byte[] contractLengthByteArr = Utils.shortToByteArr(contractLength);
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(versionByteArr);
-        outputStream.write(algorithmIdByteArr);
-        outputStream.write(coinIdLengthByteArr);
-        outputStream.write(coinIdByteArr);
-        outputStream.write(coinTypeLengthByteArr);
-        outputStream.write(coinTypeByteArr);
-        outputStream.write(chainLengthByteArr);
-        outputStream.write(chainByteArr);
-        outputStream.write(tokenLengthByteArr);
-        outputStream.write(tokenByteArr);
-        outputStream.write(contractLengthByteArr);
-        if (contract != null) {
-            outputStream.write(contractByteArr);
-        }
-        outputStream.write(decimalLengthByteArr);
-        outputStream.write(decimalByteArr);
-
-        byte[] preHash = outputStream.toByteArray();
-        return preHash;
-    }
-
-    private byte[] authWithdrawalPreHash(long sequence, String coinId, String value, String to, String memo) throws IOException {
-        byte[] versionByteArr = Utils.shortToByteArr(version);
-        byte[] algorithmIdByteArr = Utils.byteToByteArr(algorithmId);
-        byte[] sequenceByteArr = Utils.longToByteArr(sequence);
-        byte[] coinIdByteArr = Utils.stringToByteArr(coinId);
-        short coinIdLength = (short) coinIdByteArr.length;
-        byte[] coinIdLengthByteArr = Utils.shortToByteArr(coinIdLength);
-        byte[] toByteArr = Utils.stringToByteArr(to);
-        short toLength = (short) toByteArr.length;
-        byte[] toLengthByteArr = Utils.shortToByteArr(toLength);
-        byte[] amountByteArr = Utils.stringToByteArr(value);
-        short amountLength = (short) amountByteArr.length;
-        byte[] amountLengthByteArr = Utils.shortToByteArr(amountLength);
-        byte[] memoByteArr = null;
-        short memoLength = 0;
-        if (memo != null) {
-            memoByteArr = Utils.stringToByteArr(memo);
-            memoLength = (short) memoByteArr.length;
-        }
-        byte[] memoLengthByteArr = Utils.shortToByteArr(memoLength);
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(versionByteArr);
-        outputStream.write(algorithmIdByteArr);
-        outputStream.write(sequenceByteArr);
-        outputStream.write(coinIdLengthByteArr);
-        outputStream.write(coinIdByteArr);
-        outputStream.write(toLengthByteArr);
-        outputStream.write(toByteArr);
-        outputStream.write(amountLengthByteArr);
-        outputStream.write(amountByteArr);
-        outputStream.write(memoLengthByteArr);
-        if (memo != null) {
-            outputStream.write(memoByteArr);
-        }
-        byte[] preHash = outputStream.toByteArray();
-        return preHash;
-    }
-
-    private String sign (byte[] byteArr, String key) {
-        BigInteger privKey = new BigInteger(key, 16);
-        BigInteger pubKey = Sign.publicKeyFromPrivate(privKey);
-        ECKeyPair keyPair = new ECKeyPair(privKey, pubKey);
-        Sign.SignatureData signature = Sign.signMessage(byteArr, keyPair, false);
-        String r = Utils.byteArrayToHex(signature.getR());
-        String s = Utils.byteArrayToHex(signature.getS());
-        String hex = r + s;
-        return hex;
     }
 
     private String buildRequest (long timestamp, JSONObject data, String sig) {

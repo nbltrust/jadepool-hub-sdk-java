@@ -1,10 +1,9 @@
-import com.jadepool.sdk.HttpApi;
-import com.jadepool.sdk.model.*;
+package com.jadepool.sdk;
 
-public class ApiTest {
+public class HttpApiTest {
 
     public static void main(String[] args) throws Exception {
-        long sequence = 3902;
+        long sequence = 100;
 
         //initialization
         Configuration config = new Configuration("testa", "http://127.0.0.1:7001", "p8BMNxtcp8Xy+ofvxhyHbBbYDC/x0JtYBb0HJWBG2OI=", "base64", "a7c04c371b5ca7c5f2fa87efc61c876c16d80c2ff1d09b5805bd07256046d8e2", "hex");
