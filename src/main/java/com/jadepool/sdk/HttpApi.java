@@ -3,6 +3,8 @@ package com.jadepool.sdk;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java.net.URLEncoder;
 import java.sql.Timestamp;
 
 public class HttpApi{
@@ -120,7 +122,7 @@ public class HttpApi{
         data.put("type", coinType);
 
         String request = buildRequest(timestamp, data, sig);
-        String response = Utils.post(this.config.getUrl() + "/api/v1/addresses/" + address + "/verify", request);
+        String response = Utils.post(this.config.getUrl() + "/api/v1/addresses/" + URLEncoder.encode(address, "utf-8") + "/verify", request);
         JSONParser parser = new JSONParser();
         JSONObject jsonObject = (JSONObject)parser.parse(response);
         JSONObject result = (JSONObject)jsonObject.get("result");
