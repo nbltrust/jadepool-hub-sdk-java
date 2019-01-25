@@ -10,8 +10,10 @@ public class Configuration {
     private String url;
     private String eccKey;
     private String eccKeyEncoder;
+    private boolean hsm;
     private String authKey;
     private String authKeyEncoder;
+    private String language;
 
     /**
      * 初始化设置
@@ -19,16 +21,27 @@ public class Configuration {
      * @param url 瑶池URL
      * @param eccKey ECC通信私钥
      * @param eccKeyEncoder ECC通信私钥编码方式，可以是HEX或BASE64
+     * @param hsm 是否使用密码机
      * @param authKey 授权币种私钥
      * @param authKeyEncoder 授权币种私钥编码方式，可以是HEX或BASE64
+     * @param language 报错语言
      * @throws Exception
      */
-    public Configuration(String appId, String url, String eccKey, String eccKeyEncoder, String authKey, String authKeyEncoder) throws Exception {
-        if (appId == null || url == null || eccKey == null || eccKeyEncoder == null || (authKey != null && authKeyEncoder == null)) {
+    public Configuration(String appId, String url, String eccKey, String eccKeyEncoder, String language, boolean hsm, String authKey, String authKeyEncoder) throws Exception {
+        if (appId == null
+                || url == null
+                || eccKey == null
+                || eccKeyEncoder == null
+                || (hsm == true && (authKey == null || authKeyEncoder == null))
+                || language == null) {
             throw new Exception("Invalid parameter...");
         }
         this.appId = appId;
         this.url = url;
+        if (!language.equals("cn") && !language.equals("en")) {
+            throw new Exception("Only English and Chinese are supported for now...");
+        }
+        this.language = language;
         if (eccKeyEncoder.equalsIgnoreCase("hex")) {
             if (!Utils.isHex(eccKey)) {
                 throw new Exception("Invalid ecc key format...");
@@ -42,7 +55,7 @@ public class Configuration {
         } else {
             throw new Exception("Only hex and base64 key formats are supported...");
         }
-        if (authKey != null) {
+        if (hsm == true) {
             if (authKeyEncoder.equalsIgnoreCase("hex")) {
                 if (!Utils.isHex(authKey)) {
                     throw new Exception("Invalid auth key format...");
@@ -99,11 +112,27 @@ public class Configuration {
         this.eccKeyEncoder = eccKeyEncoder;
     }
 
+    public boolean isHsm() {
+        return hsm;
+    }
+
+    public void setHsm(boolean hsm) {
+        this.hsm = hsm;
+    }
+
     public String getAuthKeyEncoder() {
         return authKeyEncoder;
     }
 
     public void setAuthKeyEncoder(String authKeyEncoder) {
         this.authKeyEncoder = authKeyEncoder;
+    }
+
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
     }
 }

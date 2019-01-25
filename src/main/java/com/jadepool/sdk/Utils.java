@@ -3,12 +3,12 @@ package com.jadepool.sdk;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.*;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.web3j.crypto.ECKeyPair;
 import org.web3j.crypto.Sign;
 
@@ -89,18 +89,8 @@ class Utils {
         HttpGet request = new HttpGet(url);
         request.addHeader("content-type", "application/json");
 
-        HttpResponse httpResponse = httpClient.execute(request);
-        HttpEntity httpEntity = httpResponse.getEntity();
-        if (httpEntity != null) {
-            if (httpResponse.getStatusLine().getStatusCode() == 200) {
-                String response = EntityUtils.toString(httpEntity, "utf-8");
-                return response;
-            } else {
-                throw new Exception("Failed to request...");
-            }
-        } else {
-            throw new Exception("Connection to" + url + "failed!");
-        }
+        String result = request(httpClient, request);
+        return result;
     }
 
     static String post(String url, String data) throws Exception {
@@ -110,18 +100,8 @@ class Utils {
         request.addHeader("content-type", "application/json");
         request.setEntity(params);
 
-        HttpResponse httpResponse = httpClient.execute(request);
-        HttpEntity httpEntity = httpResponse.getEntity();
-        if (httpEntity != null) {
-            if (httpResponse.getStatusLine().getStatusCode() == 200) {
-                String response = EntityUtils.toString(httpEntity, "utf-8");
-                return response;
-            } else {
-                throw new Exception("Failed to post: " + data);
-            }
-        } else {
-            throw new Exception("Connection to" + url + "failed!");
-        }
+        String result = request(httpClient, request);
+        return result;
     }
 
     static String patch(String url, String data) throws Exception {
@@ -131,17 +111,34 @@ class Utils {
         request.addHeader("content-type", "application/json");
         request.setEntity(params);
 
+        String result = request(httpClient, request);
+        return result;
+    }
+
+    private static String request (HttpClient httpClient, HttpRequestBase request) throws Exception{
         HttpResponse httpResponse = httpClient.execute(request);
         HttpEntity httpEntity = httpResponse.getEntity();
         if (httpEntity != null) {
+            String response = EntityUtils.toString(httpEntity, "utf-8");
+            JSONParser parser = new JSONParser();
+            JSONObject jsonObject = (JSONObject)parser.parse(response);
+            String code = jsonObject.get("code").toString();
             if (httpResponse.getStatusLine().getStatusCode() == 200) {
-                String response = EntityUtils.toString(httpEntity, "utf-8");
-                return response;
-            } else {
-                throw new Exception("Failed to patch: " + data);
+                if (code.equals("0")) {
+                    return ((JSONObject)jsonObject.get("result")).toJSONString();
+                } else {
+                    String errorMessage = jsonObject.get("message").toString();
+                    throw new Exception(errorMessage);
+                }
+            }else {
+                Object errorMessage = jsonObject.get("message");
+                if (errorMessage != null) {
+                    throw new Exception(errorMessage.toString());
+                }
+                throw new Exception("Failed to request...");
             }
         } else {
-            throw new Exception("Connection to" + url + "failed!");
+            throw new Exception("Connection failed!");
         }
     }
 
