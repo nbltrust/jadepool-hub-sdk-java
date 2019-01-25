@@ -2,7 +2,6 @@ package com.jadepool.sdk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 import java.net.URLEncoder;
 import java.sql.Timestamp;
@@ -17,7 +16,6 @@ public class HttpApi{
 
     /**
      * Request withdrawal请求提现
-     * @param sequence 提现唯一序列号
      * @param coinId 币种唯一识别名
      * @param value 提现金额
      * @param to 提现目标地址
@@ -26,22 +24,19 @@ public class HttpApi{
      * @return 订单信息
      * @throws Exception
      */
-    public Order requestWithdrawal(long sequence, String coinId, String value, String to, String memo, String extraData) throws Exception {
+    public Order requestWithdrawal(String coinId, String value, String to, String memo, String extraData) throws Exception {
         if (coinId == null || value == null || to == null) {
             throw new Exception("missing required parameter");
         }
-        String withdrawalAuth = AuthBuilder.buildWithdrawalAuth(this.config.getAuthKey(), sequence, coinId, value, to, memo);
 
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
         StringBuilder preSignJsonMessage = new StringBuilder();
-        preSignJsonMessage.append("auth" + withdrawalAuth);
         if( extraData != null) {
             preSignJsonMessage.append("extraData" + extraData);
         }
         if( memo != null) {
             preSignJsonMessage.append("memo" + memo);
         }
-        preSignJsonMessage.append("sequence" + sequence);
         preSignJsonMessage.append("timestamp" + timestamp);
         preSignJsonMessage.append("to" + to);
         preSignJsonMessage.append("type" + coinId);
@@ -50,20 +45,16 @@ public class HttpApi{
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
         String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
         JSONObject data = new JSONObject();
-        data.put("sequence", sequence);
         data.put("type", coinId);
         data.put("value", value);
         data.put("to", to);
         if(memo != null) data.put("memo", memo);
         if(extraData != null) data.put("extraData", extraData);
-        data.put("auth", withdrawalAuth);
 
         String request = buildRequest(timestamp, data, sig);
-        String response = Utils.post(this.config.getUrl() + "/api/v1/transactions", request);
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject)parser.parse(response);
+        JSONObject response = Utils.post(this.config.getUrl() + "/api/v1/transactions?lang=" + this.config.getLanguage(), request);
         ObjectMapper mapper = new ObjectMapper();
-        String result = ((JSONObject)jsonObject.get("result")).toJSONString();
+        String result = ((JSONObject)response.get("result")).toJSONString();
         Order order = mapper.readValue(result, Order.class);
 
         return order;
@@ -90,11 +81,9 @@ public class HttpApi{
         data.put("type", coinType);
 
         String request = buildRequest(timestamp, data, sig);
-        String response = Utils.post(this.config.getUrl() + "/api/v1/addresses/new", request);
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject)parser.parse(response);
+        JSONObject response = Utils.post(this.config.getUrl() + "/api/v1/addresses/new?lang=" + this.config.getLanguage(), request);
         ObjectMapper mapper = new ObjectMapper();
-        String result = ((JSONObject)jsonObject.get("result")).toJSONString();
+        String result = ((JSONObject)response.get("result")).toJSONString();
         Address address = mapper.readValue(result, Address.class);
 
         return address;
@@ -122,10 +111,8 @@ public class HttpApi{
         data.put("type", coinType);
 
         String request = buildRequest(timestamp, data, sig);
-        String response = Utils.post(this.config.getUrl() + "/api/v1/addresses/" + URLEncoder.encode(address, "utf-8") + "/verify", request);
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject)parser.parse(response);
-        JSONObject result = (JSONObject)jsonObject.get("result");
+        JSONObject response = Utils.post(this.config.getUrl() + "/api/v1/addresses/" + URLEncoder.encode(address, "utf-8") + "/verify?lang=" + this.config.getLanguage(), request);
+        JSONObject result = (JSONObject)response.get("result");
         boolean isValid = (Boolean)result.get("valid");
 
         return isValid;
@@ -155,10 +142,8 @@ public class HttpApi{
         data.put("type", coinType);
 
         String request = buildRequest(timestamp, data, sig);
-        String response = Utils.post(this.config.getUrl() + "/api/v1/audits", request);
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject)parser.parse(response);
-        JSONObject result = (JSONObject)jsonObject.get("result");
+        JSONObject response = Utils.post(this.config.getUrl() + "/api/v1/audits?lang=" + this.config.getLanguage(), request);
+        JSONObject result = (JSONObject)response.get("result");
         JSONObject currentAudit = (JSONObject)result.get("current");
         String auditId = (String)currentAudit.get("id");
         return auditId;
@@ -180,11 +165,9 @@ public class HttpApi{
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
         String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
-        String response = Utils.get(this.config.getUrl() + "/api/v1/transactions/" + orderId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig);
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject)parser.parse(response);
+        JSONObject response = Utils.get(this.config.getUrl() + "/api/v1/transactions/" + orderId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig + "&lang=" + this.config.getLanguage());
         ObjectMapper mapper = new ObjectMapper();
-        String result = ((JSONObject)jsonObject.get("result")).toJSONString();
+        String result = ((JSONObject)response.get("result")).toJSONString();
         Order order = mapper.readValue(result, Order.class);
 
         return order;
@@ -207,11 +190,9 @@ public class HttpApi{
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
         String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
 
-        String response = Utils.get(this.config.getUrl() + "/api/v1/audits/" + auditId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig);
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject)parser.parse(response);
+        JSONObject response = Utils.get(this.config.getUrl() + "/api/v1/audits/" + auditId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig + "&lang=" + this.config.getLanguage());
         ObjectMapper mapper = new ObjectMapper();
-        String result = ((JSONObject)jsonObject.get("result")).toJSONString();
+        String result = ((JSONObject)response.get("result")).toJSONString();
         Audit audit = mapper.readValue(result, Audit.class);
 
         return audit;
@@ -234,46 +215,12 @@ public class HttpApi{
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
         String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
 
-        String response = Utils.get(this.config.getUrl() + "/api/v1/wallet/" + coinType + "/status?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig);
-        JSONParser parser = new JSONParser();
-        JSONObject jsonObject = (JSONObject)parser.parse(response);
+        JSONObject response = Utils.get(this.config.getUrl() + "/api/v1/wallet/" + coinType + "/status?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig + "&lang=" + this.config.getLanguage());
         ObjectMapper mapper = new ObjectMapper();
-        String result = ((JSONObject)jsonObject.get("result")).toJSONString();
+        String result = ((JSONObject)response.get("result")).toJSONString();
         WalletBalance balance = mapper.readValue(result, WalletBalance.class);
 
         return balance;
-    }
-
-    /**
-     * 授权币种
-     * @param coinId 币种唯一识别名
-     * @param coinType 币种类型
-     * @param chain 币种区块链
-     * @param token 币种链上真实名
-     * @param decimal 币种精度
-     * @param contract 智能合约
-     * @throws Exception
-     */
-    public void authCoin(String coinId, String coinType, String chain, String token, int decimal, String contract) throws Exception {
-        if (coinId == null || coinType == null || chain == null || token == null) {
-            throw new Exception("missing required parameter");
-        }
-        String coinAuth = AuthBuilder.buildCoinAuth(this.config.getAuthKey(), coinId, coinType, chain, token, decimal, contract);
-
-        long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
-        StringBuilder preSignJsonMessage = new StringBuilder();
-        preSignJsonMessage.append("authToken" + coinAuth);
-        preSignJsonMessage.append("timestamp" + timestamp);
-
-        byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
-        byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
-        String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
-
-        JSONObject data = new JSONObject();
-        data.put("authToken", coinAuth);
-
-        String request = buildRequest(timestamp, data, sig);
-        Utils.patch(this.config.getUrl() + "/api/v1/wallet/" + coinId + "/token", request);
     }
 
     private String buildRequest (long timestamp, JSONObject data, String sig) {

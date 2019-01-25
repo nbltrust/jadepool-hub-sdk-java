@@ -4,11 +4,12 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.web3j.crypto.ECKeyPair;
 import org.web3j.crypto.Sign;
 
@@ -84,7 +85,7 @@ class Utils {
         return data;
     }
 
-    static String get(String url) throws Exception {
+    static JSONObject get(String url) throws Exception {
         HttpClient httpClient = HttpClientBuilder.create().build();
         HttpGet request = new HttpGet(url);
         request.addHeader("content-type", "application/json");
@@ -92,9 +93,14 @@ class Utils {
         HttpResponse httpResponse = httpClient.execute(request);
         HttpEntity httpEntity = httpResponse.getEntity();
         if (httpEntity != null) {
+            String response = EntityUtils.toString(httpEntity, "utf-8");
+            JSONParser parser = new JSONParser();
+            JSONObject jsonObject = (JSONObject)parser.parse(response);
             if (httpResponse.getStatusLine().getStatusCode() == 200) {
-                String response = EntityUtils.toString(httpEntity, "utf-8");
-                return response;
+                return jsonObject;
+            } else if (httpResponse.getStatusLine().getStatusCode() == 500) {
+                String errorMessage = jsonObject.get("message").toString();
+                throw new Exception(errorMessage);
             } else {
                 throw new Exception("Failed to request...");
             }
@@ -103,7 +109,7 @@ class Utils {
         }
     }
 
-    static String post(String url, String data) throws Exception {
+    static JSONObject post(String url, String data) throws Exception {
         HttpClient httpClient = HttpClientBuilder.create().build();
         HttpPost request = new HttpPost(url);
         StringEntity params =new StringEntity(data);
@@ -113,32 +119,16 @@ class Utils {
         HttpResponse httpResponse = httpClient.execute(request);
         HttpEntity httpEntity = httpResponse.getEntity();
         if (httpEntity != null) {
+            String response = EntityUtils.toString(httpEntity, "utf-8");
+            JSONParser parser = new JSONParser();
+            JSONObject jsonObject = (JSONObject)parser.parse(response);
             if (httpResponse.getStatusLine().getStatusCode() == 200) {
-                String response = EntityUtils.toString(httpEntity, "utf-8");
-                return response;
+                return jsonObject;
+            } else if (httpResponse.getStatusLine().getStatusCode() == 500) {
+                String errorMessage = jsonObject.get("message").toString();
+                throw new Exception(errorMessage);
             } else {
                 throw new Exception("Failed to post: " + data);
-            }
-        } else {
-            throw new Exception("Connection to" + url + "failed!");
-        }
-    }
-
-    static String patch(String url, String data) throws Exception {
-        HttpClient httpClient = HttpClientBuilder.create().build();
-        HttpPatch request = new HttpPatch(url);
-        StringEntity params =new StringEntity(data);
-        request.addHeader("content-type", "application/json");
-        request.setEntity(params);
-
-        HttpResponse httpResponse = httpClient.execute(request);
-        HttpEntity httpEntity = httpResponse.getEntity();
-        if (httpEntity != null) {
-            if (httpResponse.getStatusLine().getStatusCode() == 200) {
-                String response = EntityUtils.toString(httpEntity, "utf-8");
-                return response;
-            } else {
-                throw new Exception("Failed to patch: " + data);
             }
         } else {
             throw new Exception("Connection to" + url + "failed!");

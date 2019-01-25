@@ -10,8 +10,7 @@ public class Configuration {
     private String url;
     private String eccKey;
     private String eccKeyEncoder;
-    private String authKey;
-    private String authKeyEncoder;
+    private String language;
 
     /**
      * 初始化设置
@@ -19,16 +18,18 @@ public class Configuration {
      * @param url 瑶池URL
      * @param eccKey ECC通信私钥
      * @param eccKeyEncoder ECC通信私钥编码方式，可以是HEX或BASE64
-     * @param authKey 授权币种私钥
-     * @param authKeyEncoder 授权币种私钥编码方式，可以是HEX或BASE64
      * @throws Exception
      */
-    public Configuration(String appId, String url, String eccKey, String eccKeyEncoder, String authKey, String authKeyEncoder) throws Exception {
-        if (appId == null || url == null || eccKey == null || eccKeyEncoder == null || (authKey != null && authKeyEncoder == null)) {
+    public Configuration(String appId, String url, String eccKey, String eccKeyEncoder, String language) throws Exception {
+        if (appId == null || url == null || eccKey == null || eccKeyEncoder == null || language == null) {
             throw new Exception("Invalid parameter...");
         }
         this.appId = appId;
         this.url = url;
+        if (!language.equals("cn") && !language.equals("en")) {
+            throw new Exception("Only English and Chinese are supported for now...");
+        }
+        this.language = language;
         if (eccKeyEncoder.equalsIgnoreCase("hex")) {
             if (!Utils.isHex(eccKey)) {
                 throw new Exception("Invalid ecc key format...");
@@ -41,21 +42,6 @@ public class Configuration {
             this.eccKey = Utils.byteArrayToHex(Base64.decodeBase64(eccKey));
         } else {
             throw new Exception("Only hex and base64 key formats are supported...");
-        }
-        if (authKey != null) {
-            if (authKeyEncoder.equalsIgnoreCase("hex")) {
-                if (!Utils.isHex(authKey)) {
-                    throw new Exception("Invalid auth key format...");
-                }
-                this.authKey = authKey;
-            } else if (authKeyEncoder.equalsIgnoreCase("base64")) {
-                if (!Utils.isBase64(authKey)) {
-                    throw new Exception("Invalid auth key format...");
-                }
-                this.authKey = Utils.byteArrayToHex(Base64.decodeBase64(authKey));
-            } else {
-                throw new Exception("Only hex and base64 key formats are supported...");
-            }
         }
     }
 
@@ -75,14 +61,6 @@ public class Configuration {
         this.eccKey = eccKey;
     }
 
-    public String getAuthKey() {
-        return this.authKey;
-    }
-
-    public void setAuthKey(final String authKey) {
-        this.authKey = authKey;
-    }
-
     public String getUrl() {
         return this.url;
     }
@@ -99,11 +77,11 @@ public class Configuration {
         this.eccKeyEncoder = eccKeyEncoder;
     }
 
-    public String getAuthKeyEncoder() {
-        return authKeyEncoder;
+    public String getLanguage() {
+        return language;
     }
 
-    public void setAuthKeyEncoder(String authKeyEncoder) {
-        this.authKeyEncoder = authKeyEncoder;
+    public void setLanguage(String language) {
+        this.language = language;
     }
 }
