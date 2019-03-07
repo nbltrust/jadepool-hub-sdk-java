@@ -1,5 +1,6 @@
-package com.jadepool.sdk;
+package com.jadepool.sdk.models;
 
+import com.jadepool.sdk.Utils;
 import org.apache.commons.codec.binary.Base64;
 
 /**
@@ -8,9 +9,9 @@ import org.apache.commons.codec.binary.Base64;
 public class Configuration {
     private String appId;
     private String url;
+    private String jadePubKey;
     private String eccKey;
     private String eccKeyEncoder;
-    private boolean hsm;
     private String authKey;
     private String authKeyEncoder;
     private String language;
@@ -19,21 +20,21 @@ public class Configuration {
      * 初始化设置
      * @param appId 通信ID，在ADMIN设置
      * @param url 瑶池URL
+     * @param jadePubKey 验签瑶池公钥
      * @param eccKey ECC通信私钥
      * @param eccKeyEncoder ECC通信私钥编码方式，可以是HEX或BASE64
-     * @param hsm 是否使用密码机
      * @param authKey 授权币种私钥
      * @param authKeyEncoder 授权币种私钥编码方式，可以是HEX或BASE64
      * @param language 报错语言
      * @throws Exception
      */
-    public Configuration(String appId, String url, String eccKey, String eccKeyEncoder, String language, boolean hsm, String authKey, String authKeyEncoder) throws Exception {
+    public Configuration(String appId, String url, String jadePubKey, String language, String eccKey, String eccKeyEncoder, String authKey, String authKeyEncoder) throws Exception {
         if (appId == null
-                || url == null
-                || eccKey == null
-                || eccKeyEncoder == null
-                || (hsm == true && (authKey == null || authKeyEncoder == null))
-                || language == null) {
+           || url == null
+           || jadePubKey == null
+           || eccKey == null
+           || eccKeyEncoder == null
+           || (authKey != null && authKeyEncoder == null)) {
             throw new Exception("Invalid parameter...");
         }
         this.appId = appId;
@@ -42,34 +43,33 @@ public class Configuration {
             throw new Exception("Only English and Chinese are supported for now...");
         }
         this.language = language;
-        if (eccKeyEncoder.equalsIgnoreCase("hex")) {
-            if (!Utils.isHex(eccKey)) {
-                throw new Exception("Invalid ecc key format...");
-            }
+        if (!Utils.isHex(jadePubKey) && !Utils.isBase64(jadePubKey)) {
+            throw new Exception("Invalid Jadepool Public Key...");
+        }
+        this.jadePubKey = jadePubKey;
+
+        if (eccKeyEncoder.equalsIgnoreCase("hex") && Utils.isHex(eccKey)) {
             this.eccKey = eccKey;
-        } else if (eccKeyEncoder.equalsIgnoreCase("base64")) {
-            if (!Utils.isBase64(eccKey)) {
-                throw new Exception("Invalid ecc key format...");
-            }
+        } else if (eccKeyEncoder.equalsIgnoreCase("base64") && Utils.isBase64(eccKey)) {
             this.eccKey = Utils.byteArrayToHex(Base64.decodeBase64(eccKey));
         } else {
-            throw new Exception("Only hex and base64 key formats are supported...");
+            throw new Exception("Invalid key or encoder...");
         }
-        if (hsm == true) {
-            if (authKeyEncoder.equalsIgnoreCase("hex")) {
-                if (!Utils.isHex(authKey)) {
-                    throw new Exception("Invalid auth key format...");
-                }
+
+        if (authKey != null) {
+            if (authKeyEncoder.equalsIgnoreCase("hex") && Utils.isHex(authKey)) {
                 this.authKey = authKey;
-            } else if (authKeyEncoder.equalsIgnoreCase("base64")) {
-                if (!Utils.isBase64(authKey)) {
-                    throw new Exception("Invalid auth key format...");
-                }
+            } else if (authKeyEncoder.equalsIgnoreCase("base64") && Utils.isBase64(authKey)) {
                 this.authKey = Utils.byteArrayToHex(Base64.decodeBase64(authKey));
             } else {
-                throw new Exception("Only hex and base64 key formats are supported...");
+                throw new Exception("Invalid key or encoder...");
             }
         }
+
+//        if (!language.equals("cn") && !language.equals("en")) {
+//            throw new Exception("Only English and Chinese are supported for now...");
+//        }
+//        this.language = language;
     }
 
     public String getAppId() {
@@ -104,20 +104,20 @@ public class Configuration {
         this.url = url;
     }
 
+    public String getJadePubKey() {
+        return jadePubKey;
+    }
+
+    public void setJadePubKey(String jadePubKey) {
+        this.jadePubKey = jadePubKey;
+    }
+
     public String getEccKeyEncoder() {
         return eccKeyEncoder;
     }
 
     public void setEccKeyEncoder(String eccKeyEncoder) {
         this.eccKeyEncoder = eccKeyEncoder;
-    }
-
-    public boolean isHsm() {
-        return hsm;
-    }
-
-    public void setHsm(boolean hsm) {
-        this.hsm = hsm;
     }
 
     public String getAuthKeyEncoder() {

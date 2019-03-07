@@ -1,14 +1,10 @@
 package com.jadepool.sdk;
 
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.*;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.web3j.crypto.ECKeyPair;
 import org.web3j.crypto.Sign;
 
@@ -17,20 +13,20 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-class Utils {
+public class Utils {
 
-    static byte[] byteToByteArr(byte data) {
+    public static byte[] byteToByteArr(byte data) {
         return new byte[]{data};
     }
 
-    static byte[] shortToByteArr(short data) {
+    public static byte[] shortToByteArr(short data) {
         return new byte[] {
                 (byte)((data >> 0) & 0xff),
                 (byte)((data >> 8) & 0xff)
         };
     }
 
-    static byte[] intToByteArr(int data) {
+    public static byte[] intToByteArr(int data) {
         return new byte[] {
                 (byte)((data >> 0) & 0xff),
                 (byte)((data >> 8) & 0xff),
@@ -39,7 +35,7 @@ class Utils {
         };
     }
 
-    static byte[] longToByteArr(long data) {
+    public static byte[] longToByteArr(long data) {
         return new byte[] {
                 (byte)((data >> 0) & 0xff),
                 (byte)((data >> 8) & 0xff),
@@ -52,11 +48,11 @@ class Utils {
         };
     }
 
-    static byte[] stringToByteArr(String data) {
+    public static byte[] stringToByteArr(String data) {
         return (data == null) ? null : data.getBytes();
     }
 
-    static byte[] sha256(byte[] input) {
+    public static byte[] sha256(byte[] input) {
         MessageDigest digest = null;
         try {
             digest = MessageDigest.getInstance("SHA-256");
@@ -67,14 +63,14 @@ class Utils {
         return digest.digest();
     }
 
-    static String byteArrayToHex(byte[] data) {
+    public static String byteArrayToHex(byte[] data) {
         StringBuilder sb = new StringBuilder(data.length * 2);
         for(byte a: data)
             sb.append(String.format("%02x", a));
         return sb.toString();
     }
 
-    static byte[] hexStringToByteArray(String s) {
+    public static byte[] hexStringToByteArray(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
@@ -84,69 +80,39 @@ class Utils {
         return data;
     }
 
-    static String get(String url) throws Exception {
+    static HttpResponse get(String url) throws Exception {
         HttpClient httpClient = HttpClientBuilder.create().build();
         HttpGet request = new HttpGet(url);
         request.addHeader("content-type", "application/json");
 
-        String result = request(httpClient, request);
-        return result;
+        return httpClient.execute(request);
     }
 
-    static String post(String url, String data) throws Exception {
+    static HttpResponse post(String url, String data) throws Exception {
         HttpClient httpClient = HttpClientBuilder.create().build();
         HttpPost request = new HttpPost(url);
         StringEntity params =new StringEntity(data);
         request.addHeader("content-type", "application/json");
         request.setEntity(params);
 
-        String result = request(httpClient, request);
-        return result;
+        return httpClient.execute(request);
     }
 
-    static String patch(String url, String data) throws Exception {
+    static HttpResponse patch(String url, String data) throws Exception {
         HttpClient httpClient = HttpClientBuilder.create().build();
         HttpPatch request = new HttpPatch(url);
         StringEntity params =new StringEntity(data);
         request.addHeader("content-type", "application/json");
         request.setEntity(params);
 
-        String result = request(httpClient, request);
-        return result;
+        return httpClient.execute(request);
     }
 
-    private static String request (HttpClient httpClient, HttpRequestBase request) throws Exception{
-        HttpResponse httpResponse = httpClient.execute(request);
-        HttpEntity httpEntity = httpResponse.getEntity();
-        if (httpEntity != null) {
-            String response = EntityUtils.toString(httpEntity, "utf-8");
-            JSONParser parser = new JSONParser();
-            JSONObject jsonObject = (JSONObject)parser.parse(response);
-            String code = jsonObject.get("code").toString();
-            if (httpResponse.getStatusLine().getStatusCode() == 200) {
-                if (code.equals("0")) {
-                    return ((JSONObject)jsonObject.get("result")).toJSONString();
-                } else {
-                    String errorMessage = jsonObject.get("message").toString();
-                    throw new Exception(errorMessage);
-                }
-            }else {
-                Object errorMessage = jsonObject.get("message");
-                if (errorMessage != null) {
-                    throw new Exception(errorMessage.toString());
-                }
-                throw new Exception("Failed to request...");
-            }
-        } else {
-            throw new Exception("Connection failed!");
-        }
-    }
-
-    static boolean isHex (String data) {
+    public static boolean isHex (String data) {
         return data.matches("\\p{XDigit}+");
     }
 
-    static boolean isBase64 (String data) {
+    public static boolean isBase64 (String data) {
         Base64.Decoder decoder = Base64.getDecoder();
         try {
             decoder.decode(data);

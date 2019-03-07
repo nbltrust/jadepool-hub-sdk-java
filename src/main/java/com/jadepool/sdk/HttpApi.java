@@ -1,15 +1,20 @@
 package com.jadepool.sdk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jadepool.sdk.models.*;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-
 import java.net.URLEncoder;
 import java.sql.Timestamp;
 
 public class HttpApi{
 
     private Configuration config;
+
+    ObjectMapper mapper = new ObjectMapper();
 
     public HttpApi(Configuration config) {
         this.config = config;
@@ -26,20 +31,17 @@ public class HttpApi{
      * @return 订单信息
      * @throws Exception
      */
-    public Order requestWithdrawal(long sequence, String coinId, String value, String to, String memo, String extraData) throws Exception {
-        if (coinId == null || value == null || to == null) {
+    public Result<Order> requestWithdrawal(long sequence, String coinId, String value, String to, String memo, String extraData) throws Exception {
+        if (coinId == null || value == null || to == null
+        || coinId.length() == 0 || value.length() == 0 || to.length() == 0) {
             throw new Exception("missing required parameter");
         }
-        String withdrawalAuth = null;
-        if (this.config.isHsm()) {
-            withdrawalAuth = AuthBuilder.buildWithdrawalAuth(this.config.getAuthKey(), sequence, coinId, value, to, memo);
-        }
+        String withdrawalAuth = AuthBuilder.buildWithdrawalAuth(this.config.getAuthKey(), sequence, coinId, value, to, memo);
+
 
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
         StringBuilder preSignJsonMessage = new StringBuilder();
-        if (this.config.isHsm()) {
-            preSignJsonMessage.append("auth" + withdrawalAuth);
-        }
+        preSignJsonMessage.append("auth" + withdrawalAuth);
         if( extraData != null) {
             preSignJsonMessage.append("extraData" + extraData);
         }
@@ -61,16 +63,21 @@ public class HttpApi{
         data.put("to", to);
         if(memo != null) data.put("memo", memo);
         if(extraData != null) data.put("extraData", extraData);
-        if (this.config.isHsm()) {
-            data.put("auth", withdrawalAuth);
-        }
+        data.put("auth", withdrawalAuth);
 
         String request = buildRequest(timestamp, data, sig);
-        String response = Utils.post(this.config.getUrl() + "/api/v1/transactions?lang=" + this.config.getLanguage(), request);
-        ObjectMapper mapper = new ObjectMapper();
-        Order order = mapper.readValue(response, Order.class);
-
-        return order;
+        HttpResponse httpResponse = Utils.post(this.config.getUrl() + "/api/v1/transactions?lang=" + this.config.getLanguage(), request);
+        Resolver resolver = resolveHttpResponse(httpResponse);
+        Result<Order> result = new Result<>();
+        result.setCode(resolver.getCode());
+        result.setMessage(resolver.getMessage());
+        if(resolver.getCode() == 0){
+            JSONObject o = resolver.getObject();
+            String resultObject = ((JSONObject)o.get("result")).toJSONString();
+            Order order = mapper.readValue(resultObject, Order.class);
+            result.setObject(order);
+        }
+        return result;
     }
 
     /**
@@ -79,8 +86,8 @@ public class HttpApi{
      * @return 地址信息
      * @throws Exception
      */
-    public Address newAddress(String coinType) throws Exception {
-        if (coinType == null) {
+    public Result<Address> newAddress(String coinType) throws Exception {
+        if (coinType == null || coinType.length() == 0) {
             throw new Exception("missing required parameter");
         }
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
@@ -94,11 +101,18 @@ public class HttpApi{
         data.put("type", coinType);
 
         String request = buildRequest(timestamp, data, sig);
-        String response = Utils.post(this.config.getUrl() + "/api/v1/addresses/new?lang=" + this.config.getLanguage(), request);
-        ObjectMapper mapper = new ObjectMapper();
-        Address address = mapper.readValue(response, Address.class);
-
-        return address;
+        HttpResponse httpResponse = Utils.post(this.config.getUrl() + "/api/v1/addresses/new?lang=" + this.config.getLanguage(), request);
+        Resolver resolver = resolveHttpResponse(httpResponse);
+        Result<Address> result = new Result<>();
+        result.setCode(resolver.getCode());
+        result.setMessage(resolver.getMessage());
+        if(resolver.getCode() == 0){
+            JSONObject o = resolver.getObject();
+            String resultObject = ((JSONObject)o.get("result")).toJSONString();
+            Address address = mapper.readValue(resultObject, Address.class);
+            result.setObject(address);
+        }
+        return result;
     }
 
     /**
@@ -108,8 +122,8 @@ public class HttpApi{
      * @return boolean
      * @throws Exception
      */
-    public boolean verifyAddress(String coinType, String address) throws Exception {
-        if (coinType == null || address == null) {
+    public Result<Boolean> verifyAddress(String coinType, String address) throws Exception {
+        if (coinType == null || address == null || coinType.length() == 0 || address.length() == 0) {
             throw new Exception("missing required parameter");
         }
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
@@ -123,12 +137,19 @@ public class HttpApi{
         data.put("type", coinType);
 
         String request = buildRequest(timestamp, data, sig);
-        String response = Utils.post(this.config.getUrl() + "/api/v1/addresses/" + URLEncoder.encode(address, "utf-8") + "/verify?lang=" + this.config.getLanguage(), request);
-        JSONParser parser = new JSONParser();
-        JSONObject result = (JSONObject)parser.parse(response);
-        boolean isValid = (Boolean)result.get("valid");
+        HttpResponse httpResponse = Utils.post(this.config.getUrl() + "/api/v1/addresses/" + URLEncoder.encode(address, "utf-8") + "/verify?lang=" + this.config.getLanguage(), request);
 
-        return isValid;
+        Resolver resolver = resolveHttpResponse(httpResponse);
+        Result<Boolean> result = new Result<>();
+        result.setCode(resolver.getCode());
+        result.setMessage(resolver.getMessage());
+        if(resolver.getCode() == 0){
+            JSONObject o = resolver.getObject();
+            JSONObject resultObject = (JSONObject) o.get("result");
+            Boolean valid = (Boolean)resultObject.get("valid");
+            result.setObject(valid);
+        }
+        return result;
     }
 
     /**
@@ -138,8 +159,8 @@ public class HttpApi{
      * @return 审计订单号
      * @throws Exception
      */
-    public String requestAudit(String coinType, long auditTime) throws Exception {
-        if (coinType == null) {
+    public Result<String> requestAudit(String coinType, long auditTime) throws Exception {
+        if (coinType == null || coinType.length() == 0) {
             throw new Exception("missing required parameter");
         }
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
@@ -155,12 +176,20 @@ public class HttpApi{
         data.put("type", coinType);
 
         String request = buildRequest(timestamp, data, sig);
-        String response = Utils.post(this.config.getUrl() + "/api/v1/audits?lang=" + this.config.getLanguage(), request);
-        JSONParser parser = new JSONParser();
-        JSONObject result = (JSONObject)parser.parse(response);
-        JSONObject currentAudit = (JSONObject)result.get("current");
-        String auditId = (String)currentAudit.get("id");
-        return auditId;
+        HttpResponse httpResponse = Utils.post(this.config.getUrl() + "/api/v1/audits?lang=" + this.config.getLanguage(), request);
+
+        Resolver resolver = resolveHttpResponse(httpResponse);
+        Result<String> result = new Result<>();
+        result.setCode(resolver.getCode());
+        result.setMessage(resolver.getMessage());
+        if(resolver.getCode() == 0){
+            JSONObject o = resolver.getObject();
+            JSONObject resultObject = (JSONObject)o.get("result");
+            JSONObject currentAudit = (JSONObject)resultObject.get("current");
+            String auditId = (String)currentAudit.get("id");
+            result.setObject(auditId);
+        }
+        return result;
     }
 
     /**
@@ -169,8 +198,8 @@ public class HttpApi{
      * @return 订单信息
      * @throws Exception
      */
-    public Order queryOrder(String orderId) throws Exception {
-        if (orderId == null) {
+    public Result<Order> queryOrder(String orderId) throws Exception {
+        if (orderId == null || orderId.length() == 0) {
             throw new Exception("missing required parameter");
         }
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
@@ -179,11 +208,20 @@ public class HttpApi{
         byte[] preSignJsonMessageByteArr = Utils.stringToByteArr(preSignJsonMessage.toString());
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
         String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
-        String response = Utils.get(this.config.getUrl() + "/api/v1/transactions/" + orderId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig + "&lang=" + this.config.getLanguage());
-        ObjectMapper mapper = new ObjectMapper();
-        Order order = mapper.readValue(response, Order.class);
+        HttpResponse httpResponse = Utils.get(this.config.getUrl() + "/api/v1/transactions/" + orderId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig + "&lang=" + this.config.getLanguage());
 
-        return order;
+        Resolver resolver = resolveHttpResponse(httpResponse);
+        Result<Order> result = new Result<>();
+        result.setCode(resolver.getCode());
+        result.setMessage(resolver.getMessage());
+        if(resolver.getCode() == 0){
+            JSONObject o = resolver.getObject();
+            String resultObject = ((JSONObject)o.get("result")).toJSONString();
+            ObjectMapper mapper = new ObjectMapper();
+            Order order = mapper.readValue(resultObject, Order.class);
+            result.setObject(order);
+        }
+        return result;
     }
 
     /**
@@ -192,8 +230,8 @@ public class HttpApi{
      * @return 审计信息
      * @throws Exception
      */
-    public Audit queryAudit(String auditId) throws Exception {
-        if (auditId == null) {
+    public Result<Audit> queryAudit(String auditId) throws Exception {
+        if (auditId == null || auditId.length() == 0) {
             throw new Exception("missing required parameter");
         }
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
@@ -203,11 +241,20 @@ public class HttpApi{
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
         String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
 
-        String response = Utils.get(this.config.getUrl() + "/api/v1/audits/" + auditId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig + "&lang=" + this.config.getLanguage());
-        ObjectMapper mapper = new ObjectMapper();
-        Audit audit = mapper.readValue(response, Audit.class);
+        HttpResponse httpResponse = Utils.get(this.config.getUrl() + "/api/v1/audits/" + auditId + "?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig + "&lang=" + this.config.getLanguage());
 
-        return audit;
+        Resolver resolver = resolveHttpResponse(httpResponse);
+        Result<Audit> result = new Result<>();
+        result.setCode(resolver.getCode());
+        result.setMessage(resolver.getMessage());
+        if(resolver.getCode() == 0){
+            JSONObject o = resolver.getObject();
+            String resultObject = ((JSONObject)o.get("result")).toJSONString();
+            ObjectMapper mapper = new ObjectMapper();
+            Audit audit = mapper.readValue(resultObject, Audit.class);
+            result.setObject(audit);
+        }
+        return result;
     }
 
     /**
@@ -216,8 +263,8 @@ public class HttpApi{
      * @return 余额信息
      * @throws Exception
      */
-    public WalletBalance getBalance(String coinType) throws Exception {
-        if (coinType == null) {
+    public Result<WalletBalance> getBalance(String coinType) throws Exception {
+        if (coinType == null || coinType.length() == 0) {
             throw new Exception("missing required parameter");
         }
         long timestamp = (new Timestamp(System.currentTimeMillis())).getTime();
@@ -227,11 +274,20 @@ public class HttpApi{
         byte[] preSignJsonMessageSha256 = Utils.sha256(preSignJsonMessageByteArr);
         String sig = Utils.sign(preSignJsonMessageSha256, this.config.getEccKey());
 
-        String response = Utils.get(this.config.getUrl() + "/api/v1/wallet/" + coinType + "/status?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig + "&lang=" + this.config.getLanguage());
-        ObjectMapper mapper = new ObjectMapper();
-        WalletBalance balance = mapper.readValue(response, WalletBalance.class);
+        HttpResponse httpResponse = Utils.get(this.config.getUrl() + "/api/v1/wallet/" + coinType + "/status?crypto=ecc&appid=" + this.config.getAppId() + "&timestamp=" + timestamp + "&encode=hex&hash=sha256&sig=" + sig + "&lang=" + this.config.getLanguage());
 
-        return balance;
+        Resolver resolver = resolveHttpResponse(httpResponse);
+        Result<WalletBalance> result = new Result<>();
+        result.setCode(resolver.getCode());
+        result.setMessage(resolver.getMessage());
+        if(resolver.getCode() == 0){
+            JSONObject o = resolver.getObject();
+            String resultObject = ((JSONObject)o.get("result")).toJSONString();
+            ObjectMapper mapper = new ObjectMapper();
+            WalletBalance balance = mapper.readValue(resultObject, WalletBalance.class);
+            result.setObject(balance);
+        }
+        return result;
     }
 
     /**
@@ -244,8 +300,9 @@ public class HttpApi{
      * @param contract 智能合约
      * @throws Exception
      */
-    public void authCoin(String coinId, String coinType, String chain, String token, int decimal, String contract) throws Exception {
-        if (coinId == null || coinType == null || chain == null || token == null) {
+    public Result<Boolean> authCoin(String coinId, String coinType, String chain, String token, int decimal, String contract) throws Exception {
+        if (coinId == null || coinType == null || chain == null || token == null
+        || coinId.length() == 0 || coinType.length() == 0 || chain.length() == 0 || token.length() == 0) {
             throw new Exception("missing required parameter");
         }
         String coinAuth = AuthBuilder.buildCoinAuth(this.config.getAuthKey(), coinId, coinType, chain, token, decimal, contract);
@@ -263,7 +320,14 @@ public class HttpApi{
         data.put("authToken", coinAuth);
 
         String request = buildRequest(timestamp, data, sig);
-        Utils.patch(this.config.getUrl() + "/api/v1/wallet/" + coinId + "/token?lang=" + this.config.getLanguage(), request);
+        HttpResponse httpResponse = Utils.patch(this.config.getUrl() + "/api/v1/wallet/" + coinId + "/token?lang=" + this.config.getLanguage(), request);
+
+        Resolver resolver = resolveHttpResponse(httpResponse);
+        Result<Boolean> result = new Result<>();
+        result.setCode(resolver.getCode());
+        result.setMessage(resolver.getMessage());
+        result.setObject(resolver.getCode() == 0 ? new Boolean(true) : new Boolean(false));
+        return result;
     }
 
     private String buildRequest (long timestamp, JSONObject data, String sig) {
@@ -280,4 +344,33 @@ public class HttpApi{
         return request;
     }
 
+    private static Resolver resolveHttpResponse(HttpResponse httpResponse) throws Exception{
+        HttpEntity httpEntity = httpResponse.getEntity();
+        if (httpEntity != null) {
+            String response = EntityUtils.toString(httpEntity, "utf-8");
+            JSONParser parser = new JSONParser();
+            JSONObject o = (JSONObject)parser.parse(response);
+            Long code = (Long) o.get("code");
+            String msg = (String) o.get("message");
+            Resolver resolver = new Resolver();
+            if (httpResponse.getStatusLine().getStatusCode() == 200) {
+                resolver.setCode(code);
+                resolver.setMessage(msg);
+                if (code == 0) {
+                    resolver.setObject(o);
+                }
+                return resolver;
+            } else {
+                if (code != null && msg != null) {
+                    resolver.setCode(code);
+                    resolver.setMessage(msg);
+                    return resolver;
+                } else {
+                    throw new Exception("Connection failed!");
+                }
+            }
+        } else {
+            throw new Exception("HTTP response does not have entity!");
+        }
+    }
 }
