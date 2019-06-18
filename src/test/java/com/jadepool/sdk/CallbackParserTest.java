@@ -1,7 +1,6 @@
 package com.jadepool.sdk;
 
 import com.jadepool.sdk.models.Audit;
-import com.jadepool.sdk.models.Configuration;
 import com.jadepool.sdk.models.Order;
 import org.junit.Test;
 import java.util.List;
@@ -11,8 +10,7 @@ import static org.junit.Assert.assertEquals;
 public class CallbackParserTest {
     @Test
     public void testOrderCallbackParser() throws Exception {
-        Configuration config = new Configuration("testa", "http://127.0.0.1:7001","BK8H2i2V1QarXSWIK8kVhMCkdtaUR8LLFVxe6TtV7yWE4xsgwkCOENEUTD62YYuckuju/QivwJHaFlRY45GCxiE=", "cn", "Gv/sLcN/Blq64QJ2BI5AZQo8VrAoTOHG/BuyGPQdjNk=", "base64", "Gv/sLcN/Blq64QJ2BI5AZQo8VrAoTOHG/BuyGPQdjNk=", "base64");
-        CallbackParser callbackParser = new CallbackParser(config);
+        CallbackParser callbackParser = new CallbackParser("BK8H2i2V1QarXSWIK8kVhMCkdtaUR8LLFVxe6TtV7yWE4xsgwkCOENEUTD62YYuckuju/QivwJHaFlRY45GCxiE=");
         String orderCallback = "{\n" +
                 "    \"code\": 0,\n" +
                 "    \"status\": 0,\n" +
@@ -142,8 +140,7 @@ public class CallbackParserTest {
 
     @Test
     public void testAuditCallbackParser() throws Exception {
-        Configuration config = new Configuration("testa", "http://127.0.0.1:7001","BK8H2i2V1QarXSWIK8kVhMCkdtaUR8LLFVxe6TtV7yWE4xsgwkCOENEUTD62YYuckuju/QivwJHaFlRY45GCxiE=", "cn", "Gv/sLcN/Blq64QJ2BI5AZQo8VrAoTOHG/BuyGPQdjNk=", "base64", "Gv/sLcN/Blq64QJ2BI5AZQo8VrAoTOHG/BuyGPQdjNk=", "base64");
-        CallbackParser callbackParser = new CallbackParser(config);
+        CallbackParser callbackParser = new CallbackParser("BK8H2i2V1QarXSWIK8kVhMCkdtaUR8LLFVxe6TtV7yWE4xsgwkCOENEUTD62YYuckuju/QivwJHaFlRY45GCxiE=");
         String auditCallback = "{\n" +
                 "  \"code\": 0,\n" +
                 "  \"status\": 0,\n" +

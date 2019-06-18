@@ -18,8 +18,8 @@ class AuthBuilder {
         outputStream.write(preHash);
         outputStream.write(WithdrawalAuthLengthByteArr);
         outputStream.write(WithdrawalAuthByteArr);
-        String finalAuth = Utils.byteArrayToHex(outputStream.toByteArray());
-        return finalAuth;
+        String Auth = Utils.byteArrayToHex(outputStream.toByteArray());
+        return Auth;
     }
 
     static String buildCoinAuth(String authKey, String coinId, String coinType, String chain, String token, int decimal, String contract) throws IOException {
@@ -34,8 +34,8 @@ class AuthBuilder {
         outputStream.write(preHash);
         outputStream.write(coinAuthLengthByteArr);
         outputStream.write(coinAuthByteArr);
-        String finalAuth = Utils.byteArrayToHex(outputStream.toByteArray());
-        return finalAuth;
+        String Auth = Utils.byteArrayToHex(outputStream.toByteArray());
+        return Auth;
     }
 
     private static byte[] authCoinPreHash(String coinId, String coinType, String chain, String token, int decimal, String contract) throws IOException {

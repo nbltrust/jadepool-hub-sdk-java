@@ -11,9 +11,14 @@ import org.web3j.crypto.Sign;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Timestamp;
 import java.util.Base64;
 
 public class Utils {
+
+    public static long getTimestamp(){
+        return (new Timestamp(System.currentTimeMillis())).getTime();
+    }
 
     public static byte[] byteToByteArr(byte data) {
         return new byte[]{data};
@@ -123,6 +128,7 @@ public class Utils {
     }
 
     static String sign (byte[] byteArr, String key) {
+        key = Utils.byteArrayToHex(org.apache.commons.codec.binary.Base64.decodeBase64(key));
         BigInteger privKey = new BigInteger(key, 16);
         BigInteger pubKey = Sign.publicKeyFromPrivate(privKey);
         ECKeyPair keyPair = new ECKeyPair(privKey, pubKey);

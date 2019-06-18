@@ -2,7 +2,7 @@
 
 ## API Example
 
-```
+```java
 import com.jadepool.sdk.*;
 
 public class Main {
@@ -65,18 +65,20 @@ public class Main {
 
 ## Callback Parser Example
 
-```
+```java
 import com.jadepool.sdk.*;
 
 public class Main {
 
     public static void main(String[] args) throws Exception {
+        
+        String eccPrivateKey = "BK8H2i2V1QarXSWIK8kVhMCkdtaUR8LLFVxe6TtV7yWE4xsgwkCOENEUTD62YYuckuju/QivwJHaFlRY45GCxiE=";
 
-        CallbackParser callbackParser = new CallbackParser(config);
+        CallbackParser callbackParser = new CallbackParser(eccPrivateKey);
 
         // Pass any Jadepool callbacks to the callback parser.
         // Pseudo code: Your callback server received Jadepool's notification
-        String orderCallback = request.body
+        String orderCallback = request.body;
 
         // Order callback will be parsed as a Order class object.
         Order orderParsed = callbackParser.orderCallbackParser(orderCallback);

@@ -6,7 +6,7 @@ import java.io.IOException;
 
 public class AuthBuilderTest {
 
-    String authKey = "a7c04c371b5ca7c5f2fa87efc61c876c16d80c2ff1d09b5805bd07256046d8e2";
+    String authKey = "p8BMNxtcp8Xy+ofvxhyHbBbYDC/x0JtYBb0HJWBG2OI=";
 
     @Test
     public void testAuthCoin() throws IOException {
