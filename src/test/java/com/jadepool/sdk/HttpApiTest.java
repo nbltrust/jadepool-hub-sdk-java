@@ -113,6 +113,77 @@ public class HttpApiTest {
         assertNull(invalidBalance.getObject());
     }
 
+    @Test
+    public void testHttpApiWithMemo() throws Exception {
+       Configuration config = new Configuration("testa", "http://127.0.0.1:7001", "Gv/sLcN/Blq64QJ2BI5AZQo8VrAoTOHG/BuyGPQdjNk=");
+
+       HttpApi api = new HttpApi(config);
+        // request a withdrawal with memo
+        Result<Order> withdrawal = api.requestWithdrawal(0, "EOS", "0.1", "coldwallet", "VVeJNbrw");
+        assertEquals("coldwallet[VVeJNbrw]", withdrawal.getObject().getTo());
+        assertEquals(0, withdrawal.getCode().longValue());
+        assertEquals("OK", withdrawal.getMessage());
+        assertEquals(Order.class, withdrawal.getObject().getClass());
+
+        // get a new address
+        Result<Address> newAddr = api.newAddress("EOS");
+        assertEquals(0, newAddr.getCode().longValue());
+        assertEquals("OK", newAddr.getMessage());
+        assertEquals(Address.class, newAddr.getObject().getClass());
+
+        // verify if an address is valid
+        Result<Boolean> valid = api.verifyAddress("EOS", newAddr.getObject().getAddress());
+        assertEquals(0, valid.getCode().longValue());
+        assertEquals("OK", valid.getMessage());
+        assertEquals(true, valid.getObject().booleanValue());
+
+        Result<Boolean> invalidVerify = api.verifyAddress("EOS", "yinnanyinna8");
+        assertNotEquals(0, invalidVerify.getCode().longValue());
+        assertEquals(20003, invalidVerify.getCode().longValue());
+        assertNotEquals("OK", invalidVerify.getMessage());
+        assertEquals("地址与类型不匹配", invalidVerify.getMessage());
+        assertNull(invalidVerify.getObject());
+
+        // request an audit
+        Result<String> auditId = api.requestAudit("EOS", Utils.getTimestamp());
+        assertEquals(0, auditId.getCode().longValue());
+        assertEquals("OK", auditId.getMessage());
+        assertEquals(String.class, auditId.getObject().getClass());
+
+        // query a order
+        Result<Order> invalidOrder = api.queryOrder("-1");
+        assertNotEquals(0, invalidOrder.getCode().longValue());
+        assertEquals(40400, invalidOrder.getCode().longValue());
+        assertNotEquals("OK", invalidOrder.getMessage());
+        assertEquals("未找到指定订单号", invalidOrder.getMessage());
+        assertNull(invalidOrder.getObject());
+
+        // query an audit order
+        Result<Audit> audit = api.queryAudit(auditId.getObject());
+        assertEquals(0, audit.getCode().longValue());
+        assertEquals("OK", audit.getMessage());
+        assertEquals(Audit.class, audit.getObject().getClass());
+
+        Result<Audit> invalidAudit = api.queryAudit("-fje2je2");
+        assertNotEquals(0, invalidAudit.getCode().longValue());
+        assertEquals(500, invalidAudit.getCode().longValue());
+        assertNotEquals("OK", invalidAudit.getMessage());
+        assertNull(invalidAudit.getObject());
+
+        Result<Audit> invalidAudit2 = api.queryAudit("5c387ae65a669ac159ba7bcc");
+        assertNotEquals(0, invalidAudit2.getCode().longValue());
+        assertEquals(40401, invalidAudit2.getCode().longValue());
+        assertNotEquals("OK", invalidAudit2.getMessage());
+        assertEquals("未找到指定审计信息", invalidAudit2.getMessage());
+        assertNull(invalidAudit2.getObject());
+
+        // query wallet balance
+        Result<WalletBalance> balance = api.getBalance("EOS");
+        assertEquals(0, balance.getCode().longValue());
+        assertEquals("OK", balance.getMessage());
+        assertEquals(WalletBalance.class, balance.getObject().getClass()); 
+   }
+
 //    @Test
 //    public void testHttpApiV12() throws Exception {
 //        Configuration config = new Configuration("testa", "http://127.0.0.1:7001", "Gv/sLcN/Blq64QJ2BI5AZQo8VrAoTOHG/BuyGPQdjNk=");
