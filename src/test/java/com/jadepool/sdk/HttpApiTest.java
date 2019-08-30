@@ -11,7 +11,7 @@ public class HttpApiTest {
 
     @Test
     public void testHttpApiV11() throws Exception {
-        Configuration config = new Configuration("testa", "http://127.0.0.1:7001", "Gv/sLcN/Blq64QJ2BI5AZQo8VrAoTOHG/BuyGPQdjNk=");
+        Configuration config = new Configuration("pri", "http://127.0.0.1:7001", "cYjKmvthKqVuFI29l5Xo+LHtkfJlIs0YnwEwXawW4NY=");
 
         HttpApi api = new HttpApi(config);
 
@@ -29,7 +29,7 @@ public class HttpApiTest {
         assertNull(invalidWithdrawal.getObject());
 
         //get a new address
-        Result<Address> newAddr = api.newAddress("BTC");
+        Result<Address> newAddr = api.newAddress("TRX");
         assertEquals(0, newAddr.getCode().longValue());
         assertEquals("OK", newAddr.getMessage());
         assertEquals(Address.class, newAddr.getObject().getClass());

@@ -302,6 +302,7 @@ public class HttpApi{
         requestParams.put("timestamp", timestamp);
         requestParams.put("data", data);
         requestParams.put("sig", sig);
+        requestParams.put("encode", "hex");
         requestParams.put("appid", this.config.getAppId());
         String request = requestParams.toJSONString();
 

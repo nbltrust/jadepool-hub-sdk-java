@@ -20,7 +20,7 @@ public class Main {
         HttpApi api = new HttpApi(config);
 
         // request a withdrawal
-        Order withdrawal = api.requestWithdrawal(sequence, "BTC", "0.01", "mg2bfYdfii2GG13HK94jXBYPPCSWRmSiAS", null, null);
+        Order withdrawal = api.requestWithdrawal(sequence, "BTC", "0.01", "mg2bfYdfii2GG13HK94jXBYPPCSWRmSiAS", null);
 
         // Request new address
         Address newAddr = api.newAddress("BTC");
